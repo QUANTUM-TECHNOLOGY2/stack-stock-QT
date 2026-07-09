@@ -6,6 +6,7 @@
     <title>StockMaster - Application de Gestion</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @media print {
             body { background: white; color: black; }
@@ -263,8 +264,34 @@
     </div>
 
     <script>
-        let inventory = JSON.parse(localStorage.getItem('sm_inventory')) || [];
-        let historyLog = JSON.parse(localStorage.getItem('sm_history')) || [];
+        // ============================================================
+        // INTÉGRATION SUPABASE
+        // ============================================================
+        const SUPABASE_URL = 'https://oimzupgpfvyiyvmmabbg.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_QP86KAzlfL1nT1qU5qrQGw_OLvTchTJ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Fonctions génériques de stockage clé/valeur (remplacent localStorage)
+        async function kvGet(key) {
+            const { data, error } = await supabaseClient
+                .from('kv_store')
+                .select('value')
+                .eq('key', key)
+                .maybeSingle();
+            if (error) { console.error('Erreur Supabase (kvGet):', error); return null; }
+            return data ? data.value : null;
+        }
+
+        async function kvSet(key, value) {
+            const { error } = await supabaseClient
+                .from('kv_store')
+                .upsert({ key, value, updated_at: new Date().toISOString() });
+            if (error) console.error('Erreur Supabase (kvSet):', error);
+        }
+        // ============================================================
+
+        let inventory = [];
+        let historyLog = [];
         let categoryChart = null;
 
         // AUTHENTICATION & MANAGEMENT
@@ -287,7 +314,7 @@
             render();
         }
 
-        function handleRegister(e) {
+        async function handleRegister(e) {
             e.preventDefault();
             const nom = document.getElementById('reg-nom').value.trim();
             const prenom = document.getElementById('reg-prenom').value.trim();
@@ -296,7 +323,7 @@
 
             if (!nom || !prenom || !email || !pass) return;
 
-            let users = JSON.parse(localStorage.getItem('sm_registered_users')) || [];
+            let users = (await kvGet('sm_registered_users')) || [];
             
             if (users.some(u => u.email === email)) {
                 alert("Cette adresse email est déjà enregistrée.");
@@ -304,20 +331,20 @@
             }
 
             users.push({ nom, prenom, email, password: pass });
-            localStorage.setItem('sm_registered_users', JSON.stringify(users));
+            await kvSet('sm_registered_users', users);
             
             document.getElementById('register-form').reset();
             alert("Inscription réussie ! Vous allez être redirigé vers l'écran de connexion.");
             showLoginView();
         }
 
-        function handleLogin(e) {
+        async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('login-email').value.trim();
             const pass = document.getElementById('login-password').value;
             const errorMsg = document.getElementById('login-error');
 
-            let users = JSON.parse(localStorage.getItem('sm_registered_users')) || [];
+            let users = (await kvGet('sm_registered_users')) || [];
             const matchedUser = users.find(u => u.email === email && u.password === pass);
 
             if (matchedUser) {
@@ -375,8 +402,8 @@
         }
 
         function syncStorage() {
-            localStorage.setItem('sm_inventory', JSON.stringify(inventory));
-            localStorage.setItem('sm_history', JSON.stringify(historyLog));
+            kvSet('sm_inventory', inventory);
+            kvSet('sm_history', historyLog);
             render();
         }
 
@@ -638,7 +665,10 @@
         }
 
         // INITIALIZATION CHECK
-        (function initApp() {
+        (async function initApp() {
+            inventory = (await kvGet('sm_inventory')) || [];
+            historyLog = (await kvGet('sm_history')) || [];
+
             if (sessionStorage.getItem('sm_authenticated') === 'true') {
                 showAppView();
             } else {
