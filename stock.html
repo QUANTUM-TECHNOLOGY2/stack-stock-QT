@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMaster - Application de Gestion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @media print {
+            body { background: white; color: black; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; width: 100% !important; }
+            /* Force l'affichage des boutons d'action proprement à l'impression si nécessaire */
+            .print-actions { display: flex !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen font-sans">
+
+    <div id="register-view" class="min-h-screen flex items-center justify-center px-4 bg-gray-100">
+        <div class="bg-white p-8 rounded-xl shadow-md border border-gray-200 w-full max-w-md">
+            <div class="flex flex-col items-center gap-1 mb-6">
+                <div class="mb-2">
+                    <img src="logo.jpeg" alt="Logo StockMaster" class="h-16 max-w-full object-contain">
+                </div>
+                <h1 class="text-xl font-bold text-gray-700">Créer un compte Admin</h1>
+                <p class="text-xs text-gray-400">Configurez vos accès administrateur</p>
+            </div>
+            
+            <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600">Nom</label>
+                        <input type="text" id="reg-nom" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1 text-gray-600">Prénom</label>
+                        <input type="text" id="reg-prenom" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-600">Adresse Email</label>
+                    <input type="email" id="reg-email" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-600">Mot de passe</label>
+                    <input type="password" id="reg-password" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                </div>
+                <button type="submit" class="w-full bg-[#293462] hover:bg-[#1f274a] text-white font-medium py-2.5 rounded-lg transition shadow-sm">
+                    S'inscrire
+                </button>
+                <p class="text-center text-xs text-gray-500 mt-2">
+                    Déjà un compte ? <button type="button" onclick="showLoginView()" class="text-[#D61C4E] underline font-medium">Se connecter</button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="login-view" class="hidden min-h-screen flex items-center justify-center px-4 bg-gray-100">
+        <div class="bg-white p-8 rounded-xl shadow-md border border-gray-200 w-full max-w-md">
+            <div class="flex flex-col items-center gap-1 mb-6">
+                <div class="mb-2">
+                    <img src="logo.jpeg" alt="Logo StockMaster" class="h-16 max-w-full object-contain">
+                </div>
+                <h1 class="text-xl font-bold text-gray-700">Connexion Espace Admin</h1>
+                <p class="text-xs text-gray-400">Veuillez renseigner vos accès sécurisés</p>
+            </div>
+            
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-600">Adresse Email</label>
+                    <input type="email" id="login-email" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-600">Mot de passe</label>
+                    <input type="password" id="login-password" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                </div>
+                <div id="login-error" class="text-sm text-[#D61C4E] font-medium hidden">
+                    Email ou mot de passe incorrect. Veuillez réessayer.
+                </div>
+                <button type="submit" class="w-full bg-[#293462] hover:bg-[#1f274a] text-white font-medium py-2.5 rounded-lg transition shadow-sm">
+                    Se connecter
+                </button>
+                <p class="text-center text-xs text-gray-500 mt-2">
+                    Pas encore de compte ? <button type="button" onclick="showRegisterView()" class="text-[#D61C4E] underline font-medium">S'inscrire</button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-view" class="hidden">
+        <nav class="bg-[#293462] text-white shadow-md sticky top-0 z-50 no-print">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <img src="logo.jpeg" alt="Logo" class="h-10 max-w-full object-contain bg-white p-1 rounded">
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="flex border-b border-gray-500">
+                            <button id="tab-btn-stock" onclick="switchTab('stock')" class="px-4 py-2 font-medium text-sm border-b-2 border-[#D61C4E]">Gestion Stock</button>
+                            <button id="tab-btn-logs" onclick="switchTab('logs')" class="px-4 py-2 font-medium text-sm text-gray-300 hover:text-white">Journal des Flux</button>
+                        </div>
+                        <button onclick="window.print()" class="bg-[#D61C4E] hover:bg-[#b5123d] text-white px-3 py-1.5 rounded text-xs font-bold transition">
+                            Imprimer
+                        </button>
+                        <button onclick="handleLogout()" class="text-xs text-gray-300 hover:text-white font-medium">
+                            Déconnexion
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <div id="notification-zone" class="mb-6 space-y-2 no-print"></div>
+
+            <div id="tab-stock-content" class="space-y-8">
+                
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                        <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Total Articles</p>
+                        <h3 id="kpi-total" class="text-3xl font-black text-[#293462] mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                        <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Alerte Rupture</p>
+                        <h3 id="kpi-alert" class="text-3xl font-black text-amber-500 mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                        <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Rupture Totale</p>
+                        <h3 id="kpi-empty" class="text-3xl font-black text-[#D61C4E] mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                        <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Équipements Réservés</p>
+                        <h3 id="kpi-reserved" class="text-3xl font-black text-blue-600 mt-1">0</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <div class="space-y-8 no-print">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h2 class="text-lg font-bold mb-4 text-[#293462] border-b pb-2">Ajouter / Modifier un Article</h2>
+                            <form id="stock-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                                <input type="hidden" id="item-id">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Nom de l'équipement</label>
+                                    <input type="text" id="item-name" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Catégorie</label>
+                                    <select id="item-category" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none bg-white">
+                                        <option value="Informatique">Informatique</option>
+                                        <option value="Mobilier">Mobilier</option>
+                                        <option value="Outillage">Outillage</option>
+                                        <option value="Consommables">Consommables</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Quantité Initiale</label>
+                                        <input type="number" id="item-qty" min="0" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Seuil d'Alerte</label>
+                                        <input type="number" id="item-alert" min="0" required class="w-full p-2.5 rounded-lg border border-gray-300 bg-transparent focus:ring-2 focus:ring-[#293462] outline-none">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full bg-[#293462] hover:bg-[#1f274a] text-white font-medium py-2.5 rounded-lg transition shadow-sm">
+                                    Enregistrer le produit
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h2 class="text-lg font-bold mb-4 text-[#293462] border-b pb-2">Distribution par Catégorie</h2>
+                            <div class="h-64 flex items-center justify-center">
+                                <canvas id="categoryChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex justify-between gap-4">
+                            <button onclick="exportToCSV()" class="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded text-xs font-bold transition border">
+                                Export CSV
+                            </button>
+                            <label class="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded text-xs font-bold transition border cursor-pointer text-center block">
+                                Import CSV
+                                <input type="file" id="csv-file" accept=".csv" class="hidden" onchange="importFromCSV(event)">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 space-y-8 print-only">
+                        
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div class="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
+                                <h2 class="text-lg font-bold text-[#293462]">État de l'Inventaire</h2>
+                                
+                                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                    <select id="search-category" onchange="handleCategorySelect()" class="p-2 text-sm rounded-lg border border-gray-300 bg-white outline-none focus:ring-2 focus:ring-[#293462]">
+                                        <option value="">-- Choisir une catégorie --</option>
+                                        <option value="All">Toutes les catégories</option>
+                                        <option value="Informatique">Informatique</option>
+                                        <option value="Mobilier">Mobilier</option>
+                                        <option value="Outillage">Outillage</option>
+                                        <option value="Consommables">Consommables</option>
+                                    </select>
+                                    
+                                    <input type="text" id="search-bar" disabled oninput="render()" placeholder="Sélectionnez une catégorie d'abord..." class="w-full sm:w-64 p-2 text-sm rounded-lg border border-gray-300 bg-gray-100 outline-none focus:ring-2 focus:ring-[#293462] disabled:opacity-60">
+                                </div>
+                            </div>
+                            
+                            <div class="p-6 hidden print:block border-b">
+                                <h2 class="text-xl font-bold text-black">Rapport Officiel : État de l'Inventaire</h2>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-100 border-b border-gray-200 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                            <th class="p-4">Équipement</th>
+                                            <th class="p-4">Catégorie</th>
+                                            <th class="p-4">Quantité Dispo</th>
+                                            <th class="p-4">Réservé</th>
+                                            <th class="p-4">Statut</th>
+                                            <th class="p-4 text-right">Actions Mouvements</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inventory-table-body" class="divide-y divide-gray-200 text-sm">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                            <h2 class="text-lg font-bold mb-4 text-[#D61C4E] border-b pb-2">Suggestions de Réapprovisionnement Automatique</h2>
+                            <ul id="reorder-suggestions-list" class="divide-y divide-gray-100 text-sm">
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-logs-content" class="hidden no-print">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="flex justify-between items-center mb-6 border-b pb-3">
+                        <div>
+                            <h2 class="text-xl font-bold text-[#293462]">Historique de l'Application</h2>
+                            <p class="text-xs text-gray-400 mt-1">Tous les mouvements de stocks et actions administratifs sont consignés ici.</p>
+                        </div>
+                        <button onclick="clearHistory()" class="text-xs text-[#D61C4E] border border-[#D61C4E] px-3 py-1 rounded hover:bg-[#D61C4E] hover:text-white transition font-medium">
+                            Effacer l'historique
+                        </button>
+                    </div>
+                    <div class="space-y-2 max-h-[600px] overflow-y-auto pr-2 text-xs" id="history-log">
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        let inventory = JSON.parse(localStorage.getItem('sm_inventory')) || [];
+        let historyLog = JSON.parse(localStorage.getItem('sm_history')) || [];
+        let categoryChart = null;
+
+        // AUTHENTICATION & MANAGEMENT
+        function showRegisterView() {
+            document.getElementById('app-view').classList.add('hidden');
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('register-view').classList.remove('hidden');
+        }
+
+        function showLoginView() {
+            document.getElementById('app-view').classList.add('hidden');
+            document.getElementById('register-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+        }
+
+        function showAppView() {
+            document.getElementById('register-view').classList.add('hidden');
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('app-view').classList.remove('hidden');
+            render();
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const nom = document.getElementById('reg-nom').value.trim();
+            const prenom = document.getElementById('reg-prenom').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-password').value;
+
+            if (!nom || !prenom || !email || !pass) return;
+
+            let users = JSON.parse(localStorage.getItem('sm_registered_users')) || [];
+            
+            if (users.some(u => u.email === email)) {
+                alert("Cette adresse email est déjà enregistrée.");
+                return;
+            }
+
+            users.push({ nom, prenom, email, password: pass });
+            localStorage.setItem('sm_registered_users', JSON.stringify(users));
+            
+            document.getElementById('register-form').reset();
+            alert("Inscription réussie ! Vous allez être redirigé vers l'écran de connexion.");
+            showLoginView();
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            const errorMsg = document.getElementById('login-error');
+
+            let users = JSON.parse(localStorage.getItem('sm_registered_users')) || [];
+            const matchedUser = users.find(u => u.email === email && u.password === pass);
+
+            if (matchedUser) {
+                sessionStorage.setItem('sm_authenticated', 'true');
+                errorMsg.classList.add('hidden');
+                showAppView();
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem('sm_authenticated');
+            document.getElementById('login-form').reset();
+            showLoginView();
+        }
+
+        // TABS NAVIGATION SYSTEM
+        function switchTab(tab) {
+            const stockContent = document.getElementById('tab-stock-content');
+            const logsContent = document.getElementById('tab-logs-content');
+            const btnStock = document.getElementById('tab-btn-stock');
+            const btnLogs = document.getElementById('tab-btn-logs');
+
+            if (tab === 'stock') {
+                stockContent.classList.remove('hidden');
+                logsContent.classList.add('hidden');
+                btnStock.className = "px-4 py-2 font-medium text-sm border-b-2 border-[#D61C4E] text-white";
+                btnLogs.className = "px-4 py-2 font-medium text-sm text-gray-300 hover:text-white";
+                render();
+            } else {
+                stockContent.classList.add('hidden');
+                logsContent.classList.remove('hidden');
+                btnStock.className = "px-4 py-2 font-medium text-sm text-gray-300 hover:text-white";
+                btnLogs.className = "px-4 py-2 font-medium text-sm border-b-2 border-[#D61C4E] text-white";
+            }
+        }
+
+        // SEARCH CONTROLLER
+        function handleCategorySelect() {
+            const catSelect = document.getElementById('search-category');
+            const searchBar = document.getElementById('search-bar');
+
+            if(catSelect.value === "") {
+                searchBar.disabled = true;
+                searchBar.placeholder = "Sélectionnez une catégorie d'abord...";
+                searchBar.classList.add('bg-gray-100');
+                searchBar.value = "";
+            } else {
+                searchBar.disabled = false;
+                searchBar.placeholder = "Rechercher un équipement...";
+                searchBar.classList.remove('bg-gray-100');
+            }
+            render();
+        }
+
+        function syncStorage() {
+            localStorage.setItem('sm_inventory', JSON.stringify(inventory));
+            localStorage.setItem('sm_history', JSON.stringify(historyLog));
+            render();
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('item-id').value;
+            const name = document.getElementById('item-name').value.trim();
+            const category = document.getElementById('item-category').value;
+            const qty = parseInt(document.getElementById('item-qty').value);
+            const alertThreshold = parseInt(document.getElementById('item-alert').value);
+
+            if(id) {
+                const item = inventory.find(i => i.id === id);
+                logActivity('Modification', `Détails mis à jour pour l'article : ${name}`);
+                item.name = name; item.category = category; item.quantity = qty; item.alertThreshold = alertThreshold;
+                triggerNotification(`Article modifié : ${name}`, 'success');
+            } else {
+                const newItem = { id: 'prod_' + Date.now(), name, category, quantity: qty, alertThreshold, reserved: 0 };
+                inventory.push(newItem);
+                logActivity('Création', `Nouvel article ajouté : ${name} (${qty} unités)`);
+                triggerNotification(`Ajout de l'équipement : ${name}`, 'success');
+            }
+            
+            document.getElementById('stock-form').reset();
+            document.getElementById('item-id').value = '';
+            syncStorage();
+        }
+
+        function updateStockLevel(id, amount, operation) {
+            const item = inventory.find(i => i.id === id);
+            if(!item) return;
+
+            if (operation === 'in') {
+                item.quantity += amount;
+                logActivity('Entrée', `+${amount} unités pour ${item.name}`);
+                triggerNotification(`Ajout de stock : +${amount} pour ${item.name}`, 'success');
+            } else if (operation === 'out') {
+                if(item.quantity < amount) {
+                    alert("Opération Impossible : Le stock disponible est insuffisant !");
+                    return;
+                }
+                item.quantity -= amount;
+                logActivity('Sortie', `-${amount} unités pour ${item.name}`);
+                
+                if(item.quantity === 0) {
+                    triggerNotification(`Rupture complète : ${item.name}`, 'danger');
+                } else if(item.quantity <= item.alertThreshold) {
+                    triggerNotification(`Seuil critique atteint pour ${item.name} (${item.quantity} restants)`, 'warning');
+                }
+            } else if (operation === 'reserve') {
+                if(item.quantity < amount) {
+                    alert("Impossible de réserver : Stock disponible insuffisant !");
+                    return;
+                }
+                item.quantity -= amount;
+                item.reserved += amount;
+                logActivity('Réservation', `+${amount} réservations sur ${item.name}`);
+            } else if (operation === 'unreserve') {
+                if(item.reserved < amount) return;
+                item.reserved -= amount;
+                item.quantity += amount;
+                logActivity('Libération', `-${amount} réservations libérées pour ${item.name}`);
+            }
+
+            syncStorage();
+        }
+
+        function deleteItem(id) {
+            const item = inventory.find(i => i.id === id);
+            if(confirm(`Supprimer définitivement l'article ${item.name} ?`)) {
+                logActivity('Suppression', `L'article ${item.name} a été retiré.`);
+                inventory = inventory.filter(i => i.id !== id);
+                syncStorage();
+            }
+        }
+
+        function editItemLoad(id) {
+            const item = inventory.find(i => i.id === id);
+            if(!item) return;
+            document.getElementById('item-id').value = item.id;
+            document.getElementById('item-name').value = item.name;
+            document.getElementById('item-category').value = item.category;
+            document.getElementById('item-qty').value = item.quantity;
+            document.getElementById('item-alert').value = item.alertThreshold;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function logActivity(type, msg) {
+            historyLog.unshift({ id: Date.now(), type, msg, date: new Date().toLocaleString('fr-FR') });
+        }
+
+        function clearHistory() {
+            if(confirm("Voulez-vous vider définitivement le journal des flux ?")) {
+                historyLog = [];
+                syncStorage();
+            }
+        }
+
+        function triggerNotification(text, status) {
+            const container = document.getElementById('notification-zone');
+            const alertBox = document.createElement('div');
+            
+            let bgClass = '';
+            if (status === 'success') bgClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+            else if (status === 'warning') bgClass = 'bg-amber-50 text-amber-800 border-amber-200';
+            else if (status === 'danger') bgClass = 'bg-red-50 text-[#D61C4E] border-red-200 font-bold';
+
+            alertBox.className = `flex items-center justify-between p-4 border rounded-xl text-sm shadow-sm ${bgClass}`;
+            alertBox.innerHTML = `
+                <span>${text}</span>
+                <button onclick="this.parentElement.remove()" class="text-xs opacity-60 hover:opacity-100 p-1">Fermer</button>
+            `;
+            container.appendChild(alertBox);
+            setTimeout(() => { if(alertBox.parentElement) alertBox.remove(); }, 5000);
+        }
+
+        function render() {
+            if (sessionStorage.getItem('sm_authenticated') !== 'true') return;
+
+            const selectedCat = document.getElementById('search-category').value;
+            const searchVal = document.getElementById('search-bar').value.toLowerCase();
+            const tableBody = document.getElementById('inventory-table-body');
+            
+            tableBody.innerHTML = '';
+
+            let kpiTotal = 0, kpiAlert = 0, kpiEmpty = 0, kpiReserved = 0;
+            let catCounts = { Informatique: 0, Mobilier: 0, Outillage: 0, Consommables: 0 };
+            let reorderAdvice = [];
+
+            inventory.forEach(item => {
+                if(selectedCat !== "All" && selectedCat !== "" && item.category !== selectedCat) return;
+                if(searchVal && !item.name.toLowerCase().includes(searchVal)) return;
+
+                kpiTotal++;
+                kpiReserved += item.reserved;
+                catCounts[item.category] = (catCounts[item.category] || 0) + item.quantity;
+
+                let statusText = "En stock", statusClass = "bg-green-100 text-green-800";
+                if (item.quantity === 0) {
+                    statusText = "Rupture"; statusClass = "bg-red-100 text-[#D61C4E]";
+                    kpiEmpty++;
+                    reorderAdvice.push(`Alerte critique : [${item.category}] ${item.name} est épuisé.`);
+                } else if (item.quantity <= item.alertThreshold) {
+                    statusText = "Stock Faible"; statusClass = "bg-amber-100 text-amber-800";
+                    kpiAlert++;
+                    reorderAdvice.push(`Seuil critique : [${item.category}] ${item.name} (${item.quantity} restants).`);
+                }
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-gray-50 border-b border-gray-100";
+                row.innerHTML = `
+                    <td class="p-4 font-bold text-[#293462]">${item.name}</td>
+                    <td class="p-4 text-gray-500">${item.category}</td>
+                    <td class="p-4 font-mono font-bold">${item.quantity}</td>
+                    <td class="p-4 font-mono text-blue-600">${item.reserved}</td>
+                    <td class="p-4"><span class="px-2.5 py-1 text-xs font-medium rounded-full ${statusClass}">${statusText}</span></td>
+                    <td class="p-4 text-right space-x-1 flex justify-end gap-1 print-actions">
+                        <button onclick="updateStockLevel('${item.id}', 1, 'in')" class="no-print px-2 py-1 bg-gray-100 hover:bg-green-600 hover:text-white rounded text-xs transition">+ Ajouter</button>
+                        <button onclick="updateStockLevel('${item.id}', 1, 'out')" class="no-print px-2 py-1 bg-gray-100 hover:bg-orange-500 hover:text-white rounded text-xs transition">- Retirer</button>
+                        <button onclick="updateStockLevel('${item.id}', 1, 'reserve')" class="no-print px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded text-xs transition">Réserver</button>
+                        <button onclick="updateStockLevel('${item.id}', 1, 'unreserve')" class="no-print px-2 py-1 bg-gray-100 text-gray-600 hover:bg-gray-400 hover:text-white rounded text-xs transition">Libérer</button>
+                        <button onclick="editItemLoad('${item.id}')" class="px-2 py-1 text-[#293462] hover:bg-gray-100 rounded text-xs font-bold transition">Modifier</button>
+                        <button onclick="deleteItem('${item.id}')" class="no-print px-2 py-1 text-[#D61C4E] hover:bg-red-50 rounded text-xs font-bold transition">Supprimer</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            document.getElementById('kpi-total').innerText = kpiTotal;
+            document.getElementById('kpi-alert').innerText = kpiAlert;
+            document.getElementById('kpi-empty').innerText = kpiEmpty;
+            document.getElementById('kpi-reserved').innerText = kpiReserved;
+
+            const adviceContainer = document.getElementById('reorder-suggestions-list');
+            adviceContainer.innerHTML = reorderAdvice.length === 0 
+                ? `<li class="py-3 text-emerald-600 font-medium">Tous les niveaux de stock sont optimaux.</li>`
+                : reorderAdvice.map(adv => `<li class="py-2.5 border-b border-gray-100 font-medium text-gray-700">${adv}</li>`).join('');
+
+            const historyContainer = document.getElementById('history-log');
+            historyContainer.innerHTML = historyLog.length === 0
+                ? `<p class="text-gray-400 italic">Aucun mouvement pour le moment.</p>`
+                : historyLog.map(log => `
+                    <div class="flex justify-between p-2.5 bg-gray-50 rounded border border-gray-100">
+                        <span><strong>[${log.type}]</strong> ${log.msg}</span>
+                        <span class="text-gray-400 font-mono">${log.date}</span>
+                    </div>
+                `).join('');
+
+            updateChart(catCounts);
+        }
+
+        function updateChart(counts) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            const data = {
+                labels: Object.keys(counts),
+                datasets: [{
+                    data: Object.values(counts),
+                    backgroundColor: ['#293462', '#f59e0b', '#D61C4E', '#10b981'],
+                    borderWidth: 0
+                }]
+            };
+
+            if(categoryChart) {
+                categoryChart.data = data;
+                categoryChart.update();
+            } else {
+                categoryChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { font: { size: 11 } } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function exportToCSV() {
+            if(inventory.length === 0) return alert("Aucune donnée.");
+            let csvContent = "data:text/csv;charset=utf-8,Nom,Categorie,Quantite,SeuilAlerte,Reserve\n";
+            inventory.forEach(i => { csvContent += `"${i.name}","${i.category}",${i.quantity},${i.alertThreshold},${i.reserved}\n`; });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Inventaire_StockMaster.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function importFromCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split("\n");
+                let imported = 0;
+                for(let i = 1; i < lines.length; i++) {
+                    const row = lines[i].split(",");
+                    if(row.length < 4 || !row[0]) continue;
+                    const name = row[0].replace(/"/g, '').trim();
+                    const category = row[1].replace(/"/g, '').trim();
+                    const quantity = parseInt(row[2]);
+                    const alertThreshold = parseInt(row[3]);
+                    const reserved = parseInt(row[4]) || 0;
+                    inventory.push({ id: 'prod_' + Date.now() + i, name, category, quantity, alertThreshold, reserved });
+                    imported++;
+                }
+                if(imported > 0) {
+                    logActivity('Importation', `${imported} articles importés par fichier.`);
+                    syncStorage();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // INITIALIZATION CHECK
+        (function initApp() {
+            if (sessionStorage.getItem('sm_authenticated') === 'true') {
+                showAppView();
+            } else {
+                showRegisterView();
+            }
+        })();
+    </script>
+</body>
+</html>
