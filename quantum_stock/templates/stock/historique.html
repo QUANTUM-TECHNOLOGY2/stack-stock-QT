@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block contenu %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-bold text-quantumBleu">Mouvements de stock</h1>
+    <div class="flex gap-2 text-sm">
+        <a href="{% url 'stock:entree' %}" class="bg-green-600 text-white px-3 py-2 rounded-lg">+ Entrée</a>
+        <a href="{% url 'stock:sortie' %}" class="bg-quantumRouge text-white px-3 py-2 rounded-lg">- Sortie</a>
+        <a href="{% url 'stock:transfert' %}" class="bg-quantumBleu text-white px-3 py-2 rounded-lg">Transfert</a>
+        <a href="{% url 'stock:ajustement' %}" class="bg-gray-500 text-white px-3 py-2 rounded-lg">Ajustement</a>
+    </div>
+</div>
+<div class="bg-white rounded-xl shadow overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr>
+                <th class="text-left px-4 py-3">Date</th>
+                <th class="text-left px-4 py-3">Matériel</th>
+                <th class="text-left px-4 py-3">Type</th>
+                <th class="text-left px-4 py-3">Quantité</th>
+                <th class="text-left px-4 py-3">Avant → Après</th>
+                <th class="text-left px-4 py-3">Utilisateur</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y">
+            {% for m in mouvements %}
+            <tr>
+                <td class="px-4 py-3 text-gray-400">{{ m.cree_le|date:"d/m/Y H:i" }}</td>
+                <td class="px-4 py-3 font-medium">{{ m.materiel.reference }}</td>
+                <td class="px-4 py-3">{{ m.get_type_mouvement_display }}</td>
+                <td class="px-4 py-3">{{ m.quantite }}</td>
+                <td class="px-4 py-3">{{ m.quantite_avant }} → {{ m.quantite_apres }}</td>
+                <td class="px-4 py-3">{{ m.utilisateur }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">Aucun mouvement enregistré.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

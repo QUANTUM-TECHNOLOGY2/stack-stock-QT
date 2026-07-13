@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1 class="text-xl font-bold text-quantumBleu mb-6">Demandes à valider</h1>
+
+<h2 class="font-semibold text-quantumBleu mb-3">Réservations</h2>
+<div class="bg-white rounded-xl shadow overflow-x-auto mb-8">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr><th class="text-left px-4 py-3">Numéro</th><th class="text-left px-4 py-3">Demandeur</th><th class="text-left px-4 py-3">Étape</th><th class="text-left px-4 py-3">Action</th></tr>
+        </thead>
+        <tbody class="divide-y">
+            {% for r in reservations %}
+            <tr>
+                <td class="px-4 py-3 font-medium"><a href="{% url 'reservations:detail' r.pk %}" class="text-quantumBleu">{{ r.numero }}</a></td>
+                <td class="px-4 py-3">{{ r.demandeur }}</td>
+                <td class="px-4 py-3">{{ r.get_etape_courante_display }}</td>
+                <td class="px-4 py-3">
+                    <form method="post" action="{% url 'workflow:traiter' 'reservation' r.pk %}" class="flex gap-2 items-center">
+                        {% csrf_token %}
+                        <input type="text" name="commentaire" placeholder="Commentaire (optionnel)" class="text-xs border border-gray-300 rounded-lg px-2 py-1">
+                        <button name="decision" value="ACCEPTE" class="bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg">Accepter</button>
+                        <button name="decision" value="MODIFICATION_DEMANDEE" class="bg-yellow-500 text-white text-xs px-3 py-1.5 rounded-lg">Modifier</button>
+                        <button name="decision" value="REFUSE" class="bg-quantumRouge text-white text-xs px-3 py-1.5 rounded-lg">Refuser</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-gray-400 py-6">Aucune réservation à traiter.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="font-semibold text-quantumBleu mb-3">Commandes</h2>
+<div class="bg-white rounded-xl shadow overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+            <tr><th class="text-left px-4 py-3">Numéro</th><th class="text-left px-4 py-3">Demandeur</th><th class="text-left px-4 py-3">Étape</th><th class="text-left px-4 py-3">Action</th></tr>
+        </thead>
+        <tbody class="divide-y">
+            {% for c in commandes %}
+            <tr>
+                <td class="px-4 py-3 font-medium"><a href="{% url 'commandes:detail' c.pk %}" class="text-quantumBleu">{{ c.numero }}</a></td>
+                <td class="px-4 py-3">{{ c.demandeur }}</td>
+                <td class="px-4 py-3">{{ c.get_etape_courante_display }}</td>
+                <td class="px-4 py-3">
+                    <form method="post" action="{% url 'workflow:traiter' 'commande' c.pk %}" class="flex gap-2 items-center">
+                        {% csrf_token %}
+                        <input type="text" name="commentaire" placeholder="Commentaire (optionnel)" class="text-xs border border-gray-300 rounded-lg px-2 py-1">
+                        <button name="decision" value="ACCEPTE" class="bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg">Accepter</button>
+                        <button name="decision" value="MODIFICATION_DEMANDEE" class="bg-yellow-500 text-white text-xs px-3 py-1.5 rounded-lg">Modifier</button>
+                        <button name="decision" value="REFUSE" class="bg-quantumRouge text-white text-xs px-3 py-1.5 rounded-lg">Refuser</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-gray-400 py-6">Aucune commande à traiter.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block contenu %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-bold text-quantumBleu">Notifications</h1>
+    <a href="{% url 'notifications:marquer_toutes_lues' %}" class="text-sm text-quantumRouge">Tout marquer comme lu</a>
+</div>
+<div class="bg-white rounded-xl shadow divide-y">
+    {% for n in notifications %}
+    <a href="{% url 'notifications:marquer_lu' n.pk %}" class="block px-4 py-3 {% if not n.lu %}bg-red-50{% endif %} hover:bg-gray-50">
+        <div class="flex justify-between">
+            <p class="font-medium text-sm {% if not n.lu %}text-quantumRouge{% endif %}">{{ n.titre }}</p>
+            <span class="text-xs text-gray-400">{{ n.cree_le|date:"d/m/Y H:i" }}</span>
+        </div>
+        <p class="text-sm text-gray-500">{{ n.message }}</p>
+    </a>
+    {% empty %}
+    <p class="text-gray-400 text-center py-6">Aucune notification.</p>
+    {% endfor %}
+</div>
+{% endblock %}

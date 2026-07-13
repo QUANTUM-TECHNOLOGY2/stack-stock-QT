@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block contenu %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-bold text-quantumBleu">Catalogue des matériels</h1>
+    {% if user.est_administration or user.role == "MAGASINIER" %}
+    <a href="{% url 'catalog:materiel_creer' %}" class="bg-quantumRouge text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-quantumRouge/90">
+        + Ajouter un matériel
+    </a>
+    {% endif %}
+</div>
+
+<form method="get" class="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-3 items-end">
+    <div class="flex-1 min-w-[200px]">
+        <label class="text-xs text-gray-500">{{ form.q.label }}</label>
+        {{ form.q }}
+    </div>
+    <div class="min-w-[180px]">
+        <label class="text-xs text-gray-500">{{ form.categorie.label }}</label>
+        {{ form.categorie }}
+    </div>
+    <label class="flex items-center gap-2 text-sm">
+        {{ form.disponible }} {{ form.disponible.label }}
+    </label>
+    <button class="bg-quantumBleu text-white text-sm font-semibold px-4 py-2 rounded-lg">Rechercher</button>
+</form>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for materiel in page_obj %}
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="h-32 bg-gray-100 flex items-center justify-center">
+            {% if materiel.photo_principale %}
+            <img src="{{ materiel.photo_principale.url }}" class="h-full w-full object-cover">
+            {% else %}
+            <span class="text-4xl">📦</span>
+            {% endif %}
+        </div>
+        <div class="p-4">
+            <p class="text-xs text-gray-400">{{ materiel.reference }}</p>
+            <p class="font-semibold text-quantumBleu">{{ materiel.designation }}</p>
+            <p class="text-xs text-gray-500 mb-2">{{ materiel.categorie }}</p>
+            <div class="flex items-center justify-between text-sm">
+                <span class="{% if materiel.rupture_stock %}text-quantumRouge{% elif materiel.stock_faible %}text-yellow-600{% else %}text-green-600{% endif %} font-medium">
+                    {{ materiel.quantite_disponible }} dispo.
+                </span>
+                <a href="{{ materiel.get_absolute_url }}" class="text-quantumRouge text-sm font-medium">Détails →</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-gray-400 col-span-full">Aucun matériel trouvé.</p>
+    {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="flex justify-center gap-2 mt-6 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 bg-white rounded shadow">Préc.</a>{% endif %}
+    <span class="px-3 py-1">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 bg-white rounded shadow">Suiv.</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

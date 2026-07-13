@@ -1,0 +1,11 @@
+Bonjour {{ user.first_name|default:user.username }},
+
+Merci de vous être inscrit sur la plateforme de gestion de stock QUANTUM TECHNOLOGY.
+
+Veuillez cliquer sur le lien ci-dessous pour vérifier votre adresse email et activer votre compte :
+{{ lien }}
+
+Ce lien est valable 48 heures.
+
+Cordialement,
+L'équipe QUANTUM TECHNOLOGY

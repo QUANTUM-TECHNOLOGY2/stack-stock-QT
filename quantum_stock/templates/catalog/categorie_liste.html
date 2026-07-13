@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block contenu %}
+<h1 class="text-xl font-bold text-quantumBleu mb-6">Hiérarchie des catégories</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 bg-white rounded-xl shadow p-6">
+        {% for racine in racines %}
+        <div class="mb-4">
+            <p class="font-semibold text-quantumBleu">📁 {{ racine.nom }} <span class="text-xs text-gray-400">({{ racine.get_niveau_display }})</span></p>
+            <ul class="ml-6 mt-1 space-y-1 text-sm text-gray-600">
+                {% for enfant in racine.enfants.all %}
+                <li>↳ {{ enfant.nom }} <span class="text-xs text-gray-400">({{ enfant.get_niveau_display }})</span></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% empty %}
+        <p class="text-gray-400">Aucune catégorie créée pour le moment.</p>
+        {% endfor %}
+    </div>
+
+    {% if user.est_administration %}
+    <div class="bg-white rounded-xl shadow p-6">
+        <h2 class="font-semibold text-quantumBleu mb-4">Nouvelle catégorie</h2>
+        <form method="post" class="space-y-3">
+            {% csrf_token %}
+            {% for field in form %}
+            <div>
+                <label class="text-xs text-gray-500 block mb-1">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
+            <button class="w-full bg-quantumRouge text-white font-semibold py-2.5 rounded-lg">Créer</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
