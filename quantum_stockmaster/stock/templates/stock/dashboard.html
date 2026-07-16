@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Technology - Gestion de Stock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @media print {
+            body { background: white; color: black; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen font-sans">
+
+    <nav class="bg-[#293462] text-white shadow-md sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-lg font-black tracking-wider text-white">QUANTUM TECHNOLOGY</span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="flex border-b border-gray-600">
+                        <button onclick="switchTab('stock')" id="tab-btn-stock" class="px-4 py-2 font-medium text-sm border-b-2 border-[#D61C4E] text-white">Gestion Stock</button>
+                        <button onclick="switchTab('logs')" id="tab-btn-logs" class="px-4 py-2 font-medium text-sm text-gray-300 hover:text-white">Journal des Flux</button>
+                    </div>
+                    <button onclick="window.print()" class="bg-[#D61C4E] hover:bg-[#b5123d] text-white px-3 py-1.5 rounded text-xs font-bold transition">
+                        Imprimer
+                    </button>
+                    <span class="text-xs text-gray-300">👤 {{ request.user.first_name }} {{ request.user.last_name }}</span>
+                    <a href="{% url 'logout' %}" class="text-xs text-[#D61C4E] hover:underline font-medium">Déconnexion</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {% if messages %}
+            <div class="mb-6 space-y-2 no-print">
+                {% for message in messages %}
+                    <div class="p-4 border rounded-xl text-sm shadow-sm bg-blue-50 text-[#293462] border-blue-200">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- TAB CONTENT: STOCK MANAGEMENT -->
+        <div id="tab-stock-content" class="space-y-8">
+            
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Total Articles</p>
+                    <h3 class="text-3xl font-black text-[#293462] mt-1">{{ kpi_total }}</h3>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Alerte Rupture</p>
+                    <h3 class="text-3xl font-black text-amber-500 mt-1">{{ kpi_alert }}</h3>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Rupture Totale</p>
+                    <h3 class="text-3xl font-black text-[#D61C4E] mt-1">{{ kpi_empty }}</h3>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Réservations Actives</p>
+                    <h3 class="text-3xl font-black text-blue-600 mt-1">{{ kpi_reserved }}</h3>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Left Column Panel: Form & Chart -->
+                <div class="space-y-8 no-print">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h2 id="form-title" class="text-lg font-bold mb-4 text-[#293462] border-b pb-2">Ajouter un Équipement</h2>
+                        <form id="stock-form" action="{% url 'add_or_edit' %}" method="POST" class="space-y-3">
+                            {% csrf_token %}
+                            <input type="hidden" id="item-id" name="item_id">
+                            <div>
+                                <label class="block text-xs font-semibold mb-1 text-gray-600">Désignation *</label>
+                                <input type="text" id="item-name" name="nom" required class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold mb-1 text-gray-600">Catégorie *</label>
+                                <select id="item-category" name="categorie" required class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] bg-white outline-none">
+                                    {% for cat in categories %}
+                                        <option value="{{ cat }}">{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1 text-gray-600">Marque</label>
+                                    <input type="text" id="item-brand" name="marque" class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1 text-gray-600">Modèle</label>
+                                    <input type="text" id="item-model" name="modele" class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1 text-gray-600">Numéro de Série</label>
+                                    <input type="text" id="item-sn" name="numero_serie" class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1 text-gray-600">Référence</label>
+                                    <input type="text" id="item-ref" name="reference" class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold mb-1 text-gray-600">Fournisseur</label>
+                                <input type="text" id="item-supplier" name="fournisseur" class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1 text-gray-600">Quantité Initiale *</label>
+                                    <input type="number" id="item-qty" name="quantite" min="0" required class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1 text-gray-600">Seuil d'Alerte *</label>
+                                    <input type="number" id="item-alert" name="seuil" min="0" required class="w-full p-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                                </div>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="submit" class="w-full bg-[#293462] hover:bg-[#1f274a] text-white font-semibold py-2 rounded-lg transition text-sm shadow-sm">
+                                    Enregistrer l'équipement
+                                </button>
+                                <button type="button" onclick="resetForm()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 rounded-lg text-sm">✕</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h2 class="text-lg font-bold mb-4 text-[#293462] border-b pb-2">Répartition par Catégorie</h2>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex justify-between gap-4">
+                        <a href="{% url 'export_csv' %}" class="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded text-xs font-bold transition border text-center block">
+                            Export CSV
+                        </a>
+                        <form action="{% url 'import_csv' %}" method="POST" enctype="multipart/form-data" class="w-1/2">
+                            {% csrf_token %}
+                            <label class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded text-xs font-bold transition border cursor-pointer text-center block">
+                                Import CSV
+                                <input type="file" name="csv_file" accept=".csv" class="hidden" onchange="this.form.submit()">
+                            </label>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Central Inventaire view -->
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
+                            <h2 class="text-lg font-bold text-[#293462]">État de l'Inventaire</h2>
+                            
+                            <form method="GET" class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                <select name="category" onchange="this.form.submit()" class="p-2 text-sm rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-[#293462] outline-none">
+                                    <option value="All">Toutes les catégories</option>
+                                    {% for cat in categories %}
+                                        <option value="{{ cat }}" {% if selected_cat == cat %}selected{% endif %}>{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="text" name="search" value="{{ search_query }}" placeholder="Recherche d'équipements..." class="w-full sm:w-48 p-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#293462] outline-none bg-transparent">
+                                <button type="submit" class="bg-[#293462] hover:bg-[#1f274a] text-white px-4 py-2 rounded-lg text-sm font-semibold transition">Filtrer</button>
+                            </form>
+                        </div>
+                        
+                        <div class="p-6 hidden print:block border-b">
+                            <h2 class="text-xl font-bold text-black">Quantum Technology - Rapport Officiel d'Inventaire</h2>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-gray-100 border-b border-gray-200 font-semibold uppercase tracking-wider text-gray-600">
+                                        <th class="p-4">Équipement / S/N</th>
+                                        <th class="p-4">Détails</th>
+                                        <th class="p-4">Dispo</th>
+                                        <th class="p-4">Réservé</th>
+                                        <th class="p-4">Statut</th>
+                                        <th class="p-4 text-right no-print">Actions Mouvements</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 text-sm">
+                                    {% for item in equipements %}
+                                    <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+                                        <td class="p-4 font-bold text-[#293462]">
+                                            {{ item.nom }}<br>
+                                            <span class="text-[10px] text-gray-400 font-normal">S/N: {{ item.numero_serie|default:"Indéfini" }}</span>
+                                        </td>
+                                        <td class="p-4 text-gray-500 text-xs">
+                                            <span class="font-bold text-[#293462]">{{ item.categorie }}</span><br>
+                                            {{ item.marque|default:"" }} {% if item.modele %} - {{ item.modele }}{% endif %}
+                                        </td>
+                                        <td class="p-4 font-mono font-bold">{{ item.quantite_dispo }}</td>
+                                        <td class="p-4 font-mono text-blue-600 font-bold">{{ item.quantite_reservee }}</td>
+                                        <td class="p-4">
+                                            {% if item.quantite_dispo == 0 %}
+                                                <span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-red-100 text-[#D61C4E]">Rupture</span>
+                                            {% elif item.quantite_dispo <= item.seuil_alerte %}
+                                                <span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-amber-100 text-amber-800">Faible</span>
+                                            {% else %}
+                                                <span class="px-2 py-0.5 text-[10px] font-medium rounded-full bg-green-100 text-green-800">Ok</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="p-4 text-right no-print">
+                                            <div class="flex flex-col items-end gap-1.5">
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-[10px] text-gray-400">Qté :</span>
+                                                    <input type="number" id="qty-{{ item.id }}" value="1" min="1" class="w-12 p-0.5 text-center text-xs border border-gray-300 rounded outline-none focus:ring-1 focus:ring-[#293462]">
+                                                </div>
+                                                <div class="flex flex-wrap justify-end gap-1">
+                                                    <button onclick="applyAction('{{ item.id }}', 'in')" class="px-2 py-0.5 bg-gray-100 hover:bg-emerald-600 hover:text-white rounded text-[10px] transition font-semibold">+ Entrée</button>
+                                                    <button onclick="applyAction('{{ item.id }}', 'out')" class="px-2 py-0.5 bg-gray-100 hover:bg-rose-600 hover:text-white rounded text-[10px] transition font-semibold">- Sortie</button>
+                                                    <button onclick="applyAction('{{ item.id }}', 'reserve')" class="px-2 py-0.5 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white rounded text-[10px] transition font-semibold">Réserver</button>
+                                                    <button onclick="applyAction('{{ item.id }}', 'unreserve')" class="px-2 py-0.5 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white rounded text-[10px] transition font-semibold">Libérer</button>
+                                                    <button onclick="loadEditForm('{{ item.id }}', '{{ item.nom|escapejs }}', '{{ item.categorie|escapejs }}', '{{ item.marque|escapejs }}', '{{ item.modele|escapejs }}', '{{ item.numero_serie|escapejs }}', '{{ item.reference|escapejs }}', '{{ item.fournisseur|escapejs }}', '{{ item.quantite_dispo }}', '{{ item.seuil_alerte }}')" class="px-2 py-0.5 bg-gray-100 hover:bg-slate-700 hover:text-white rounded text-[10px] transition font-semibold">Éditer</button>
+                                                    <a href="{% url 'delete_item' item.id %}" onclick="return confirm('Confirmer la suppression de cet élément ?')" class="px-2 py-0.5 bg-rose-50 text-[#D61C4E] hover:bg-[#D61C4E] hover:text-white rounded text-[10px] transition font-semibold">Supprimer</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="p-8 text-center text-gray-400 text-sm">Aucun équipement de stock enregistré.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Automatic Reorder Alert Section -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h2 class="text-lg font-bold mb-4 text-[#D61C4E] border-b pb-2">Système d'Alerte de Réapprovisionnement</h2>
+                        <ul class="divide-y divide-gray-100 text-xs">
+                            {% for item in equipements %}
+                                {% if item.quantite_dispo <= item.seuil_alerte %}
+                                    <li class="py-2.5 flex items-center justify-between">
+                                        <span class="text-gray-700">
+                                            {% if item.quantite_dispo == 0 %}
+                                                🔴 Rupture totale sur [{{ item.categorie }}] <strong>{{ item.nom }}</strong>. Action requise d'urgence.
+                                            {% else %}
+                                                ⚠️ Seuil d'alerte atteint sur [{{ item.categorie }}] <strong>{{ item.nom }}</strong> ({{ item.quantite_dispo }} restants).
+                                            {% endif %}
+                                        </span>
+                                    </li>
+                                {% endif %}
+                            {% empty %}
+                                <li class="py-3 text-gray-400 text-center">Tous les indicateurs de stock sont corrects. ✓</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT: FLOW AUDIT LOGS -->
+        <div id="tab-logs-content" class="hidden no-print">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-6 border-b pb-3">
+                    <div>
+                        <h2 class="text-xl font-bold text-[#293462]">Journal d'audit des Flux d'Équipements</h2>
+                        <p class="text-xs text-gray-400 mt-1">Enregistrement infalsifiable des transactions de stock de Quantum Technology.</p>
+                    </div>
+                    <a href="{% url 'clear_history' %}" onclick="return confirm('Cette action effacera définitivement tout historique. Continuer ?')" class="text-xs text-[#D61C4E] border border-[#D61C4E] px-3 py-1.5 rounded hover:bg-[#D61C4E] hover:text-white transition font-medium">
+                        Réinitialiser l'historique
+                    </a>
+                </div>
+                <div class="space-y-2 max-h-[600px] overflow-y-auto pr-2 text-xs">
+                    {% for log in logs %}
+                        <div class="p-3 bg-gray-50 border border-gray-100 rounded-lg flex justify-between items-center">
+                            <div>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide mr-2 
+                                    {% if log.type_action == 'Création' %}bg-emerald-100 text-emerald-800
+                                    {% elif log.type_action == 'Modification' %}bg-indigo-100 text-indigo-800
+                                    {% elif log.type_action == 'Suppression' %}bg-rose-100 text-[#D61C4E]
+                                    {% elif log.type_action == 'Réservation' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ log.type_action }}
+                                </span>
+                                <span class="text-gray-700">{{ log.message }}</span>
+                            </div>
+                            <span class="text-gray-400 text-[10px]">{{ log.date_action|date:"d/m/Y H:i" }}</span>
+                        </div>
+                    {% empty %}
+                        <p class="text-gray-400 text-center py-4">Aucune action enregistrée pour le moment.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function switchTab(tab) {
+            const stockContent = document.getElementById('tab-stock-content');
+            const logsContent = document.getElementById('tab-logs-content');
+            const btnStock = document.getElementById('tab-btn-stock');
+            const btnLogs = document.getElementById('tab-btn-logs');
+
+            if (tab === 'stock') {
+                stockContent.classList.remove('hidden');
+                logsContent.classList.add('hidden');
+                btnStock.className = "px-4 py-2 font-medium text-sm border-b-2 border-[#D61C4E] text-white";
+                btnLogs.className = "px-4 py-2 font-medium text-sm text-gray-300 hover:text-white";
+            } else {
+                stockContent.classList.add('hidden');
+                logsContent.classList.remove('hidden');
+                btnStock.className = "px-4 py-2 font-medium text-sm text-gray-300 hover:text-white";
+                btnLogs.className = "px-4 py-2 font-medium text-sm border-b-2 border-[#D61C4E] text-white";
+            }
+        }
+
+        // Action dynamique appliquant la quantité saisie
+        function applyAction(itemId, action) {
+            const qtyInput = document.getElementById('qty-' + itemId);
+            const qty = qtyInput ? qtyInput.value : 1;
+            window.location.href = `/item/update/${itemId}/${action}/?qty=${qty}`;
+        }
+
+        // Chargement d'un équipement dans le formulaire
+        function loadEditForm(id, name, cat, brand, model, sn, ref, supplier, qty, alert) {
+            document.getElementById('item-id').value = id;
+            document.getElementById('item-name').value = name;
+            document.getElementById('item-category').value = cat;
+            document.getElementById('item-brand').value = brand;
+            document.getElementById('item-model').value = model;
+            document.getElementById('item-sn').value = sn;
+            document.getElementById('item-ref').value = ref;
+            document.getElementById('item-supplier').value = supplier;
+            document.getElementById('item-qty').value = qty;
+            document.getElementById('item-alert').value = alert;
+
+            document.getElementById('form-title').innerText = "Modifier l'Équipement";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('stock-form').reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('form-title').innerText = "Ajouter un Équipement";
+        }
+
+        // Configuration dynamique du graphique en anneau Chart.js
+        const ctx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ chart_labels|safe }},
+                datasets: [{
+                    data: {{ chart_values|safe }},
+                    backgroundColor: ['#293462', '#D61C4E', '#FEB139', '#1F8A70', '#54B435', '#371B58', '#4C6793', '#AEBDCA', '#82CD47', '#FF7F3F', '#6D9886', '#B2A4FF'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 10, font: { size: 9 } }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
